@@ -27,7 +27,6 @@ public class PumpOnTask extends Thread {
 				pumpPin.low();
 				sleep(120000);
 			} catch (InterruptedException e) {
-				System.out.println(e + " " + e.getMessage());
 				pumpPin.low();
 			}
 			synchronized(finished) {

@@ -7,6 +7,9 @@ import java.util.concurrent.Semaphore;
 
 class TempCheckTask extends TimerTask {
 
+	private static final int NUMBER_OF_SECS_WAITING = 30; 
+	static private int secondsWaiting = 1;
+	
 	static private Double averageInside = 0.0;
 	static private long lastAverageInside = 0;
 	private Double averageOutside = 0.0;
@@ -92,8 +95,14 @@ class TempCheckTask extends TimerTask {
 			reportTemperature.setPumpTime(new GregorianCalendar(), false, lastTimePumpOn, lastTimePumpOff);
 		}
 		if (lastAverageInside != (long)(averageInside*100)) {
-			lastAverageInside = (long)(averageInside*100);
-			reportTemperature.publish();
+			if (secondsWaiting > NUMBER_OF_SECS_WAITING) {
+				lastAverageInside = (long)(averageInside*100);
+				reportTemperature.publish();
+				secondsWaiting = 1;
+			}
+			else {
+				secondsWaiting++;
+			}
 		}
 	}
 }
