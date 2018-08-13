@@ -8,21 +8,21 @@ import java.util.concurrent.Semaphore;
 class TempCheckTask extends TimerTask {
 
 	static private Double averageInside = 0.0;
-	static private Double lastAverageInside = 0.0;
+	static private long lastAverageInside = 0;
 	private Double averageOutside = 0.0;
 	private ArrayList<Jugs> jugList;
 	private Semaphore lock = new Semaphore(1);
 	static private PumpOnTask pumpOnTask = null;
 	private TwoHourTimerTask twoHourTimerTask = null;
-	private ReportTemperatureTask reportTemperatureTask = null;
+	private ReportTemperature reportTemperature = null;
 	private PumpPin pumpPin;
 	static private GregorianCalendar lastTimePumpOff = new GregorianCalendar();
 	static private GregorianCalendar lastTimePumpOn = new GregorianCalendar();
 	
-	public TempCheckTask(ArrayList<Jugs> jugList, TwoHourTimerTask twoHourTimerTask, ReportTemperatureTask reportTemperatureTask) {
+	public TempCheckTask(ArrayList<Jugs> jugList, TwoHourTimerTask twoHourTimerTask, ReportTemperature reportTemperatureTask) {
 		this.jugList = jugList;
 		this.twoHourTimerTask = twoHourTimerTask;
-		this.reportTemperatureTask = reportTemperatureTask;
+		this.reportTemperature = reportTemperatureTask;
 		pumpPin = PumpPin.getInstance();
 	    pumpPin.low();
 	}
@@ -82,14 +82,18 @@ class TempCheckTask extends TimerTask {
 			pumpOnTask = new PumpOnTask(pumpPin);
 			lastTimePumpOn = new GregorianCalendar();
 			pumpOnTask.start();
-			reportTemperatureTask.setPumpTime(new GregorianCalendar(), true, lastTimePumpOn, lastTimePumpOff);
+			reportTemperature.setPumpTime(new GregorianCalendar(), true, lastTimePumpOn, lastTimePumpOff);
 		} else if ((averageInside < 66.0D) && (pumpOnTask != null)) {
 //			System.out.println("shutting down pumpon task");
 			pumpOnTask.shutdown();
 			pumpOnTask = null;
 			lastTimePumpOff = new GregorianCalendar();
 			twoHourTimerTask.unlockIt();
-			reportTemperatureTask.setPumpTime(new GregorianCalendar(), false, lastTimePumpOn, lastTimePumpOff);
+			reportTemperature.setPumpTime(new GregorianCalendar(), false, lastTimePumpOn, lastTimePumpOff);
+		}
+		if (lastAverageInside != (long)(averageInside*100)) {
+			lastAverageInside = (long)(averageInside*100);
+			reportTemperature.publish();
 		}
 	}
 }

@@ -33,7 +33,6 @@ public class TempMon
   private ArrayList<Jugs> jugList = new ArrayList<>();
   private Timer twoHourTimer = new Timer();
   private Timer tempCheckTimer = new Timer();
-  private Timer reportTimer = new Timer();
   private GregorianCalendar lastTimePumpOn = new GregorianCalendar();
   private GregorianCalendar lastTimePumpOff = new GregorianCalendar();
   
@@ -145,12 +144,11 @@ public class TempMon
 	    calendar.set(12, minute);
 	    calendar.set(13, 0);
 	    */
-	    ReportTemperatureTask reportTemperatureTask = new ReportTemperatureTask(jugList, new GregorianCalendar(), false, lastTimePumpOn, lastTimePumpOff);
+	    ReportTemperature reportTemperature = new ReportTemperature(jugList, new GregorianCalendar(), false, lastTimePumpOn, lastTimePumpOff);
 	    
-	    TempCheckTask tempCheckTask = new TempCheckTask(jugList, twoHourTimerTask, reportTemperatureTask);
+	    TempCheckTask tempCheckTask = new TempCheckTask(jugList, twoHourTimerTask, reportTemperature);
 		tempCheckTimer.schedule(tempCheckTask, 0, 5000);
 	    twoHourTimer.scheduleAtFixedRate(twoHourTimerTask, calendar.getTime(), PUSH_WATER_INTERVAL);
-	    reportTimer.schedule(reportTemperatureTask, 0, REPORT_TIME_INTERVAL);
 	}
 
   

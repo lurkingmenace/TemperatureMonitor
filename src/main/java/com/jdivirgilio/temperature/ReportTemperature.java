@@ -3,10 +3,9 @@ package com.jdivirgilio.temperature;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
-import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
-public class ReportTemperatureTask extends TimerTask
+public class ReportTemperature
 {
   private ArrayList<Jugs> jugList;
   private GregorianCalendar time;
@@ -55,7 +54,7 @@ public class ReportTemperatureTask extends TimerTask
 	}
   }
   
-  public ReportTemperatureTask(ArrayList<Jugs> jugList, GregorianCalendar time, boolean isPumpOn, Calendar lastTimePumpOn, Calendar lastTimePumpOff)
+  public ReportTemperature(ArrayList<Jugs> jugList, GregorianCalendar time, boolean isPumpOn, Calendar lastTimePumpOn, Calendar lastTimePumpOff)
   {
     this.jugList = jugList;
     this.time = time;
@@ -64,7 +63,7 @@ public class ReportTemperatureTask extends TimerTask
     this.lastTimePumpOn = lastTimePumpOn;
   }
   
-  public void run()
+  public void publish()
   {
     Double averageInsideTemp = 0.0D;
     Double averageOutsideTemp = 0.0D;
