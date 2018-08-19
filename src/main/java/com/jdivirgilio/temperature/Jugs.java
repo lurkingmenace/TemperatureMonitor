@@ -19,33 +19,43 @@ class Jugs {
 	private String name;
 	private double offset;
 	private String plantName;
-	
+
 	public Jugs(TemperatureSensor device, String name, double tempOffset, String plantName) {
 		this.device = device;
 		this.name = name;
 		this.offset = tempOffset;
 		this.plantName = plantName;
 	}
-	
+
 	public Jugs(TemperatureSensor device, String name, double tempOffset) {
 		this(device, name, tempOffset, "");
 	}
 
 	public void persist(BufferedWriter fout) throws IOException {
-		fout.write(((W1Device)device).getId().trim() + ":" + getName() + ":" + 
-					Double.toString(getOffset()));
+		fout.write(((W1Device) device).getId().trim() + ":" + getName() + ":" + Double.toString(getOffset()));
 		if (!getPlantName().isEmpty()) {
 			fout.write(":" + getPlantName());
 		}
 		fout.write("\n");
 	}
-	
+
 	public Double getTemperature() {
 		return device.getTemperature(TemperatureScale.FARENHEIT);
 	}
 
-	public TemperatureSensor getDevice() { return device; }
-	public String getName()   	{ return name; }
-	public Double getOffset() 	{ return offset; }
-	public String getPlantName(){ return plantName; }
+	public TemperatureSensor getDevice() {
+		return device;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public Double getOffset() {
+		return offset;
+	}
+
+	public String getPlantName() {
+		return plantName;
+	}
 }
