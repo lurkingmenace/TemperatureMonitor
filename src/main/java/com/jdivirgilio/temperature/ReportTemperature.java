@@ -10,59 +10,27 @@ public class ReportTemperature {
 	private GregorianCalendar time;
 	private boolean isPumpOn;
 
-	private class TimeBreakDown {
-		private long days;
-		private long hours;
-		private long minutes;
-		private long seconds;
-
-		public TimeBreakDown(long deltaTime) {
-			days = TimeUnit.MILLISECONDS.toDays(deltaTime);
-			deltaTime -= TimeUnit.DAYS.convert(deltaTime, TimeUnit.MILLISECONDS);
-			if (deltaTime > 0L) {
-				hours = TimeUnit.MILLISECONDS.toHours(deltaTime);
-				deltaTime -= TimeUnit.MILLISECONDS.convert(hours, TimeUnit.HOURS);
-				if (deltaTime > 0L) {
-					minutes = TimeUnit.MILLISECONDS.toMinutes(deltaTime);
-					deltaTime -= TimeUnit.MILLISECONDS.convert(minutes, TimeUnit.MINUTES);
-					if (deltaTime > 0L) {
-						seconds = TimeUnit.MILLISECONDS.toSeconds(deltaTime);
-					}
-				}
-			}
-		}
-
-		public long getDays() {
-			return days;
-		}
-
-		public long getHours() {
-			return hours;
-		}
-
-		public long getMinutes() {
-			return minutes;
-		}
-
-		public long getSeconds() {
-			return seconds;
-		}
-	}
-
 	public ReportTemperature(ArrayList<Jugs> jugList, GregorianCalendar time, boolean isPumpOn) {
 		this.jugList = jugList;
 		this.time = time;
 		this.isPumpOn = isPumpOn;
+//		for (Jugs jugs: jugList) {
+//			System.out.println("Jug: " + jugs.getName() + " " + jugs.getOffset() + " " + jugs.getPlantName() + " is Empty? " + jugs.getPlantName().isEmpty());
+//		}
+
 	}
 
 	public void publish() {
+//		for (Jugs jugs: jugList) {
+//			System.out.println("Jug: " + jugs.getName() + " " + jugs.getOffset() + " " + jugs.getPlantName() + " is Empty? " + jugs.getPlantName().isEmpty());
+//		}
 		Double averageInsideTemp = 0.0D;
 		Double averageOutsideTemp = 0.0D;
 		int numInside = 0;
 		int numOutside = 0;
-		StringBuilder sb = new StringBuilder();
 		System.out.println("\n" + Calendar.getInstance().getTime());
 		for (Jugs jug : this.jugList) {
+			StringBuilder sb = new StringBuilder();
 			if (jug.getPlantName().isEmpty()) {
 				averageOutsideTemp = averageOutsideTemp + jug.getTemperature() + jug.getOffset();
 				numOutside++;

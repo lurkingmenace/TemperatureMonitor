@@ -4,13 +4,13 @@ import java.util.Calendar;
 import java.util.TimerTask;
 import java.util.concurrent.locks.ReentrantLock;
 
-class TwoHourTimerTask
+class FreezePreventionTimerTask
 extends TimerTask
 {
 	private ReentrantLock lock = new ReentrantLock();
 	private PumpPin pumpPin;
 
-	public TwoHourTimerTask() {
+	public FreezePreventionTimerTask() {
 		pumpPin = PumpPin.getInstance();
 	}
 
@@ -28,16 +28,16 @@ extends TimerTask
 	{
 		lockIt();
 		System.out.println("\n" + Calendar.getInstance().getTime() + "\nPushing water through to prevent freezing");
-		if (this.pumpPin.isLow()) {
-			this.pumpPin.high();
+		if (this.pumpPin.isHigh()) {
+			this.pumpPin.low();
 		}
 		try {
 			Thread.sleep(5000L);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		if (this.pumpPin.isHigh()) {
-			this.pumpPin.low();
+		if (this.pumpPin.isLow()) {
+			this.pumpPin.high();
 		}
 		try {
 			Thread.sleep(2000L);

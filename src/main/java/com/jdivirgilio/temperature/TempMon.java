@@ -15,13 +15,18 @@ import java.util.List;
 import java.util.StringTokenizer;
 import java.util.Timer;
 
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
 import com.pi4j.component.temperature.TemperatureSensor;
 import com.pi4j.io.w1.W1Master;
 import com.pi4j.io.w1.W1Device;
 
 public class TempMon implements Runnable {
-	public static final int MAX_TEMP = 67;
-	public static final int MIN_TEMP = 66;
+	@Parameter(names = "-f", description = "Hours to wait before cycling water through the pump. <= 0 = off")
+	private Integer freezePreventionTime = 2;
+	
+	public static final int MAX_TEMP = 68;
+	public static final int MIN_TEMP = 67;
 	public static final int ALERT_TEMP = 69;
 	public static final int ON_TIME = 5000;
 	public static final int OFF_TIME = 120000;
@@ -29,11 +34,15 @@ public class TempMon implements Runnable {
 	public static final long PUSH_WATER_INTERVAL = 7200000L; // 2 hours
 	private Thread t;
 	private ArrayList<Jugs> jugList = new ArrayList<>();
-	private Timer twoHourTimer = new Timer();
+	private Timer freezePreventionTimer = new Timer();
 	private Timer tempCheckTimer = new Timer();
 
-	public TempMon() {
+	public TempMon(String[] args) {
 		t = new Thread(this, "TempMon");
+		JCommander.newBuilder()
+			.addObject(this)
+			.build()
+			.parse(args);
 	}
 
 	private void initSystem() {
@@ -70,8 +79,10 @@ public class TempMon implements Runnable {
 						break;
 					}
 					if (parms.size() == 3) {
+						System.out.println("Found Jug: " + parms.get(0) + " " + parms.get(1) + " " + parms.get(2));
 						jugList.add(new Jugs(devices.get(i), parms.get(1), Double.parseDouble(parms.get(2))));
 					} else {
+						System.out.println("Found Jug: " + parms.get(0) + " " + parms.get(1) + " " + parms.get(2) + " " + parms.get(3));
 						jugList.add(
 								new Jugs(devices.get(i), parms.get(1), Double.parseDouble(parms.get(2)), parms.get(3)));
 					}
@@ -104,13 +115,18 @@ public class TempMon implements Runnable {
 
 	public void run() {
 		initSystem();
+		
+//		for (Jugs jugs: jugList) {
+//			System.out.println("Jug: " + jugs.getName() + " " + jugs.getOffset() + " " + jugs.getPlantName() + " is Empty? " + jugs.getPlantName().isEmpty());
+//		}
 
 		Calendar calendar = Calendar.getInstance();
 		int hour = calendar.get(11) % 2 == 0 ? calendar.get(11) + 2 : calendar.get(11) + 1;
 		calendar.set(11, hour);
 		calendar.set(12, 0);
 		calendar.set(13, 0);
-		TwoHourTimerTask twoHourTimerTask = new TwoHourTimerTask();
+		FreezePreventionTimerTask freezePreventionTimerTask = new FreezePreventionTimerTask();
+		
 		/*
 		 * Calendar calendar = Calendar.getInstance(); int minute = calendar.get(12); if
 		 * (minute % 5 == 0) { minute++; } if (minute < 15) { minute = 15; } else if
@@ -119,13 +135,19 @@ public class TempMon implements Runnable {
 		 */
 		ReportTemperature reportTemperature = new ReportTemperature(jugList, new GregorianCalendar(), false);
 
-		TempCheckTask tempCheckTask = new TempCheckTask(jugList, twoHourTimerTask, reportTemperature);
+		TempCheckTask tempCheckTask = new TempCheckTask(jugList, freezePreventionTimerTask, reportTemperature);
 		tempCheckTimer.schedule(tempCheckTask, 0, 5000);
-		twoHourTimer.scheduleAtFixedRate(twoHourTimerTask, calendar.getTime(), PUSH_WATER_INTERVAL);
+		if (freezePreventionTime > 0) {
+			System.out.println("Setting freeze prevention timer to " + freezePreventionTime.toString() + " hours.");
+			freezePreventionTimer.scheduleAtFixedRate(freezePreventionTimerTask, calendar.getTime(), freezePreventionTime * 60 * 60 * 1000);
+		}
+		else {
+			System.out.println("No Freeze prevention task running");
+		}
 	}
 
 	public static void main(String[] args) {
-		TempMon tm = new TempMon();
+		TempMon tm = new TempMon(args);
 		tm.t.start();
 		try {
 			tm.t.join();

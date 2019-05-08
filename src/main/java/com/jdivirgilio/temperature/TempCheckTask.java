@@ -5,6 +5,7 @@ import java.util.GregorianCalendar;
 import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
 
+
 class TempCheckTask extends TimerTask {
 
 	private static final int NUMBER_OF_SECS_WAITING = 30;
@@ -16,17 +17,18 @@ class TempCheckTask extends TimerTask {
 	private ArrayList<Jugs> jugList;
 	private Semaphore lock = new Semaphore(1);
 	static private PumpOnTask pumpOnTask = null;
-	private TwoHourTimerTask twoHourTimerTask = null;
+	private FreezePreventionTimerTask freezePreventionTimerTask = null;
 	private ReportTemperature reportTemperature = null;
+	private TimePumpIsOnTask timePumpIsOnTask = null;
 	private PumpPin pumpPin;
 
-	public TempCheckTask(ArrayList<Jugs> jugList, TwoHourTimerTask twoHourTimerTask,
+	public TempCheckTask(ArrayList<Jugs> jugList, FreezePreventionTimerTask freezeTask,
 			ReportTemperature reportTemperatureTask) {
 		this.jugList = jugList;
-		this.twoHourTimerTask = twoHourTimerTask;
+		this.freezePreventionTimerTask = freezeTask;
 		this.reportTemperature = reportTemperatureTask;
 		pumpPin = PumpPin.getInstance();
-		pumpPin.low();
+		pumpPin.high();
 	}
 
 	public double getAverageInside() {
@@ -75,23 +77,28 @@ class TempCheckTask extends TimerTask {
 		averageInside /= numInside;
 		averageOutside /= numOutside;
 		lock.release();
-//		System.out.println("in: " + averageInside + "   out: " + averageOutside);
-		if ((averageInside > 67.0D) && (pumpOnTask == null)) {
-			twoHourTimerTask.lockIt();
-//			System.out.println("creating a pumpon task");
+		//System.out.println("in: " + averageInside + "   out: " + averageOutside);
+		if ((averageInside > TempMon.MAX_TEMP) && (pumpOnTask == null)) {
+			freezePreventionTimerTask.lockIt();
+			//System.out.println("creating a pumpon task");
 			pumpOnTask = new PumpOnTask(pumpPin);
 			pumpOnTask.start();
 			reportTemperature.setPumpTime(new GregorianCalendar(), true);
-		} else if ((averageInside < 66.0D) && (pumpOnTask != null)) {
-//			System.out.println("shutting down pumpon task");
+			timePumpIsOnTask = new TimePumpIsOnTask();
+		} else if ((averageInside < TempMon.MIN_TEMP) && (pumpOnTask != null)) {
+			//System.out.println("shutting down pumpon task");
 			pumpOnTask.shutdown();
 			pumpOnTask = null;
-			twoHourTimerTask.unlockIt();
+			freezePreventionTimerTask.unlockIt();
 			reportTemperature.setPumpTime(new GregorianCalendar(), false);
+			if (timePumpIsOnTask != null) {
+				timePumpIsOnTask.shutdown();
+				timePumpIsOnTask = null;
+			}
 		}
-		if (lastAverageInside != (long) (averageInside * 100)) {
+		if (lastAverageInside != (long)(averageInside * 100)) { // This is a long to remove notificaiton on precision changes < 100th's pos.
 			if (secondsWaiting > NUMBER_OF_SECS_WAITING) {
-				lastAverageInside = (long) (averageInside * 100);
+				lastAverageInside = (long)(averageInside * 100);
 				reportTemperature.publish();
 				secondsWaiting = 1;
 			} else {
