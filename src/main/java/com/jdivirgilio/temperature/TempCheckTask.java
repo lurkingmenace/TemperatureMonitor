@@ -22,7 +22,6 @@ class TempCheckTask extends TimerTask {
 	private ReportTemperature reportTemperature = null;
 	private TimePumpIsOnTask timePumpIsOnTask = null;
 	private Timer freezePreventionTimer = null;
-	private Calendar freezeTimerTime = null;
 	private Integer freezePreventionTime = 2;
 	private PumpPin pumpPin;
 
@@ -35,14 +34,7 @@ class TempCheckTask extends TimerTask {
 		pumpPin.high();
 		setUpFreezeTime();
 		freezePreventionTimerTask = new FreezePreventionTimerTask();
-		freezePreventionTimer = new Timer();
-		if (freezePreventionTime > 0) {
-			System.out.println("Setting freeze prevention timer to " + freezePreventionTime.toString() + " hours.");
-			freezePreventionTimer.scheduleAtFixedRate(freezePreventionTimerTask, freezeTimerTime.getTime(), freezePreventionTime * 60 * 60 * 1000);
-		}
-		else {
-			System.out.println("No Freeze prevention task running");
-		}
+		startFreezePreventionTimer();
 	}
 
 	public double getAverageInside() {
@@ -109,10 +101,7 @@ class TempCheckTask extends TimerTask {
 				timePumpIsOnTask.shutdown();
 				timePumpIsOnTask = null;
 			}
-			if (freezePreventionTime > 0) {
-				setUpFreezeTime();
-				freezePreventionTimer.scheduleAtFixedRate(freezePreventionTimerTask, freezeTimerTime.getTime(), freezePreventionTime * 60 * 60 * 1000);
-			}
+			startFreezePreventionTimer();
 		}
 		if (lastAverageInside != (long) (averageInside * 100)) { // This is a long to remove notificaiton on precision
 																	// changes < 100th's pos.
@@ -136,11 +125,23 @@ class TempCheckTask extends TimerTask {
 	}
 	
 	private final void setUpFreezeTime() {
+
+	}
+	
+	private final void startFreezePreventionTimer() {
 		// Set up freeze timer
-		freezeTimerTime = Calendar.getInstance();
+		Calendar freezeTimerTime = Calendar.getInstance();
 		int hour = freezeTimerTime.get(11) % 2 == 0 ? freezeTimerTime.get(11) + 2 : freezeTimerTime.get(11) + 1;
 		freezeTimerTime.set(11, hour);
 		freezeTimerTime.set(12, 0);
 		freezeTimerTime.set(13, 0);
+		freezePreventionTimer = new Timer();
+		if (freezePreventionTime > 0) {
+			System.out.println("Setting freeze prevention timer to " + freezePreventionTime.toString() + " hours.");
+			freezePreventionTimer.scheduleAtFixedRate(freezePreventionTimerTask, freezeTimerTime.getTime(), freezePreventionTime * 60 * 60 * 1000);
+		}
+		else {
+			System.out.println("No Freeze prevention task running");
+		}
 	}
 }
