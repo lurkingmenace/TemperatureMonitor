@@ -40,7 +40,7 @@ class Jugs {
 	}
 
 	public Double getTemperature() {
-		return device.getTemperature(TemperatureScale.FARENHEIT);
+		return device.getTemperature(TemperatureScale.FARENHEIT) + this.offset;
 	}
 
 	public TemperatureSensor getDevice() {

@@ -3,7 +3,6 @@ package com.jdivirgilio.temperature;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
-import java.util.concurrent.TimeUnit;
 
 public class ReportTemperature {
 	private ArrayList<Jugs> jugList;

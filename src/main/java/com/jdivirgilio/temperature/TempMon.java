@@ -9,7 +9,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -28,13 +27,13 @@ public class TempMon implements Runnable {
 	public static final int MAX_TEMP = 68;
 	public static final int MIN_TEMP = 67;
 	public static final int ALERT_TEMP = 69;
+	public static final int MAX_TEMP_SINGLE_JUG = 69;
 	public static final int ON_TIME = 5000;
 	public static final int OFF_TIME = 120000;
 	public static final long REPORT_TIME_INTERVAL = 300000L; // 5 minutes
 	public static final long PUSH_WATER_INTERVAL = 7200000L; // 2 hours
 	private Thread t;
 	private ArrayList<Jugs> jugList = new ArrayList<>();
-	private Timer freezePreventionTimer = new Timer();
 	private Timer tempCheckTimer = new Timer();
 
 	public TempMon(String[] args) {
@@ -120,12 +119,7 @@ public class TempMon implements Runnable {
 //			System.out.println("Jug: " + jugs.getName() + " " + jugs.getOffset() + " " + jugs.getPlantName() + " is Empty? " + jugs.getPlantName().isEmpty());
 //		}
 
-		Calendar calendar = Calendar.getInstance();
-		int hour = calendar.get(11) % 2 == 0 ? calendar.get(11) + 2 : calendar.get(11) + 1;
-		calendar.set(11, hour);
-		calendar.set(12, 0);
-		calendar.set(13, 0);
-		FreezePreventionTimerTask freezePreventionTimerTask = new FreezePreventionTimerTask();
+
 		
 		/*
 		 * Calendar calendar = Calendar.getInstance(); int minute = calendar.get(12); if
@@ -135,15 +129,9 @@ public class TempMon implements Runnable {
 		 */
 		ReportTemperature reportTemperature = new ReportTemperature(jugList, new GregorianCalendar(), false);
 
-		TempCheckTask tempCheckTask = new TempCheckTask(jugList, freezePreventionTimerTask, reportTemperature);
+		TempCheckTask tempCheckTask = new TempCheckTask(jugList, freezePreventionTime, reportTemperature);
 		tempCheckTimer.schedule(tempCheckTask, 0, 5000);
-		if (freezePreventionTime > 0) {
-			System.out.println("Setting freeze prevention timer to " + freezePreventionTime.toString() + " hours.");
-			freezePreventionTimer.scheduleAtFixedRate(freezePreventionTimerTask, calendar.getTime(), freezePreventionTime * 60 * 60 * 1000);
-		}
-		else {
-			System.out.println("No Freeze prevention task running");
-		}
+
 	}
 
 	public static void main(String[] args) {

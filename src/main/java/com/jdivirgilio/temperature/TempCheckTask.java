@@ -1,10 +1,11 @@
 package com.jdivirgilio.temperature;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.TimerTask;
 import java.util.concurrent.Semaphore;
-
+import java.util.Timer;
 
 class TempCheckTask extends TimerTask {
 
@@ -20,15 +21,28 @@ class TempCheckTask extends TimerTask {
 	private FreezePreventionTimerTask freezePreventionTimerTask = null;
 	private ReportTemperature reportTemperature = null;
 	private TimePumpIsOnTask timePumpIsOnTask = null;
+	private Timer freezePreventionTimer = null;
+	private Calendar freezeTimerTime = null;
+	private Integer freezePreventionTime = 2;
 	private PumpPin pumpPin;
 
-	public TempCheckTask(ArrayList<Jugs> jugList, FreezePreventionTimerTask freezeTask,
+	public TempCheckTask(ArrayList<Jugs> jugList, Integer freezePreventionTime,
 			ReportTemperature reportTemperatureTask) {
 		this.jugList = jugList;
-		this.freezePreventionTimerTask = freezeTask;
 		this.reportTemperature = reportTemperatureTask;
+		this.freezePreventionTime = freezePreventionTime;
 		pumpPin = PumpPin.getInstance();
 		pumpPin.high();
+		setUpFreezeTime();
+		freezePreventionTimerTask = new FreezePreventionTimerTask();
+		freezePreventionTimer = new Timer();
+		if (freezePreventionTime > 0) {
+			System.out.println("Setting freeze prevention timer to " + freezePreventionTime.toString() + " hours.");
+			freezePreventionTimer.scheduleAtFixedRate(freezePreventionTimerTask, freezeTimerTime.getTime(), freezePreventionTime * 60 * 60 * 1000);
+		}
+		else {
+			System.out.println("No Freeze prevention task running");
+		}
 	}
 
 	public double getAverageInside() {
@@ -55,6 +69,7 @@ class TempCheckTask extends TimerTask {
 
 	@Override
 	public void run() {
+		boolean isAJugHot = false;
 		try {
 			lock.acquire();
 		} catch (InterruptedException e) {
@@ -65,45 +80,67 @@ class TempCheckTask extends TimerTask {
 		averageInside = 0.0;
 		int numInside = 0;
 		for (Jugs jug : jugList) {
-			// System.out.printf("%f %f\n", jug.getTemperature(), jug.getOffset());
+			// System.out.printf("%f %f\n", jug.getTemperature());
 			if (jug.getPlantName().isEmpty()) {
-				averageOutside += jug.getTemperature() + jug.getOffset();
+				averageOutside += jug.getTemperature();
 				numOutside++;
 			} else {
-				averageInside += jug.getTemperature() + jug.getOffset();
+				Double temp = jug.getTemperature();
+				averageInside += temp;
+				if (temp > TempMon.MAX_TEMP_SINGLE_JUG) {
+					isAJugHot = true;
+				}
 				numInside++;
 			}
 		}
 		averageInside /= numInside;
 		averageOutside /= numOutside;
 		lock.release();
-		//System.out.println("in: " + averageInside + "   out: " + averageOutside);
-		if ((averageInside > TempMon.MAX_TEMP) && (pumpOnTask == null)) {
-			freezePreventionTimerTask.lockIt();
-			//System.out.println("creating a pumpon task");
-			pumpOnTask = new PumpOnTask(pumpPin);
-			pumpOnTask.start();
-			reportTemperature.setPumpTime(new GregorianCalendar(), true);
-			timePumpIsOnTask = new TimePumpIsOnTask();
-		} else if ((averageInside < TempMon.MIN_TEMP) && (pumpOnTask != null)) {
-			//System.out.println("shutting down pumpon task");
+		reportTemperature.setPumpTime(new GregorianCalendar(), false);
+		// System.out.println("in: " + averageInside + " out: " + averageOutside);
+		if (isAJugHot || (averageInside > TempMon.MAX_TEMP) && (pumpOnTask == null)) {
+			startPump();
+		} else if (!isAJugHot && (averageInside < TempMon.MIN_TEMP) && (pumpOnTask != null)) {
+			// System.out.println("shutting down pumpon task");
 			pumpOnTask.shutdown();
 			pumpOnTask = null;
-			freezePreventionTimerTask.unlockIt();
 			reportTemperature.setPumpTime(new GregorianCalendar(), false);
 			if (timePumpIsOnTask != null) {
 				timePumpIsOnTask.shutdown();
 				timePumpIsOnTask = null;
 			}
+			if (freezePreventionTime > 0) {
+				setUpFreezeTime();
+				freezePreventionTimer.scheduleAtFixedRate(freezePreventionTimerTask, freezeTimerTime.getTime(), freezePreventionTime * 60 * 60 * 1000);
+			}
 		}
-		if (lastAverageInside != (long)(averageInside * 100)) { // This is a long to remove notificaiton on precision changes < 100th's pos.
+		if (lastAverageInside != (long) (averageInside * 100)) { // This is a long to remove notificaiton on precision
+																	// changes < 100th's pos.
 			if (secondsWaiting > NUMBER_OF_SECS_WAITING) {
-				lastAverageInside = (long)(averageInside * 100);
+				lastAverageInside = (long) (averageInside * 100);
 				reportTemperature.publish();
 				secondsWaiting = 1;
 			} else {
 				secondsWaiting++;
 			}
 		}
+	}
+
+	private void startPump() {
+		freezePreventionTimerTask.cancel();
+		// System.out.println("creating a pumpon task");
+		pumpOnTask = new PumpOnTask(pumpPin);
+		pumpOnTask.start();
+		reportTemperature.setPumpTime(new GregorianCalendar(), true);
+		timePumpIsOnTask = new TimePumpIsOnTask();
+	}
+	
+	private final void setUpFreezeTime() {
+		// Set up freeze timer
+		freezeTimerTime = Calendar.getInstance();
+		int hour = freezeTimerTime.get(11) % 2 == 0 ? freezeTimerTime.get(11) + 2 : freezeTimerTime.get(11) + 1;
+		freezeTimerTime.set(11, hour);
+		freezeTimerTime.set(12, 0);
+		freezeTimerTime.set(13, 0);
 	}
 }
