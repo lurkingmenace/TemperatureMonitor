@@ -31,13 +31,13 @@ public class ReportTemperature {
 		for (Jugs jug : this.jugList) {
 			StringBuilder sb = new StringBuilder();
 			if (jug.getPlantName().isEmpty()) {
-				averageOutsideTemp = averageOutsideTemp + jug.getTemperature() + jug.getOffset();
+				averageOutsideTemp = averageOutsideTemp + jug.getTemperature();
 				numOutside++;
 			} else {
-				averageInsideTemp = averageInsideTemp + jug.getTemperature() + jug.getOffset();
+				averageInsideTemp = averageInsideTemp + jug.getTemperature();
 				numInside++;
 				sb.append(jug.getPlantName() + " temp is %.2fF\n");
-				System.out.printf(sb.toString(), jug.getTemperature() + jug.getOffset());
+				System.out.printf(sb.toString(), jug.getTemperature());
 			}
 		}
 		averageInsideTemp = averageInsideTemp / numInside;

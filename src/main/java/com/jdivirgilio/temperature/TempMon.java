@@ -24,10 +24,10 @@ public class TempMon implements Runnable {
 	@Parameter(names = "-f", description = "Hours to wait before cycling water through the pump. <= 0 = off")
 	private Integer freezePreventionTime = 2;
 	
-	public static final int MAX_TEMP = 68;
-	public static final int MIN_TEMP = 67;
-	public static final int ALERT_TEMP = 69;
-	public static final int MAX_TEMP_SINGLE_JUG = 69;
+	public static final Double MAX_TEMP = 68.0;
+	public static final Double MIN_TEMP = 67.0;
+	public static final Double ALERT_TEMP = 69.0;
+	public static final Double MAX_TEMP_SINGLE_JUG = 69.0;
 	public static final int ON_TIME = 5000;
 	public static final int OFF_TIME = 120000;
 	public static final long REPORT_TIME_INTERVAL = 300000L; // 5 minutes

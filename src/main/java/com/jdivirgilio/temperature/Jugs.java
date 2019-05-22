@@ -51,7 +51,7 @@ class Jugs {
 		return name;
 	}
 
-	public Double getOffset() {
+	private Double getOffset() {
 		return offset;
 	}
 

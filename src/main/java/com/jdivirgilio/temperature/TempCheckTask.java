@@ -32,8 +32,6 @@ class TempCheckTask extends TimerTask {
 		this.freezePreventionTime = freezePreventionTime;
 		pumpPin = PumpPin.getInstance();
 		pumpPin.high();
-		setUpFreezeTime();
-		freezePreventionTimerTask = new FreezePreventionTimerTask();
 		startFreezePreventionTimer();
 	}
 
@@ -78,6 +76,7 @@ class TempCheckTask extends TimerTask {
 				numOutside++;
 			} else {
 				Double temp = jug.getTemperature();
+				//System.out.println("jug: " + jug.getName() + " temp: " + temp);
 				averageInside += temp;
 				if (temp > TempMon.MAX_TEMP_SINGLE_JUG) {
 					isAJugHot = true;
@@ -88,9 +87,8 @@ class TempCheckTask extends TimerTask {
 		averageInside /= numInside;
 		averageOutside /= numOutside;
 		lock.release();
-		reportTemperature.setPumpTime(new GregorianCalendar(), false);
-		// System.out.println("in: " + averageInside + " out: " + averageOutside);
-		if (isAJugHot || (averageInside > TempMon.MAX_TEMP) && (pumpOnTask == null)) {
+		//System.out.println("pumpOnTask: " +  (pumpOnTask != null) + " isAJugHot: " + isAJugHot + " avgIn: "  + averageInside);
+		if (pumpOnTask == null && (isAJugHot || averageInside > TempMon.MAX_TEMP)) {
 			startPump();
 		} else if (!isAJugHot && (averageInside < TempMon.MIN_TEMP) && (pumpOnTask != null)) {
 			// System.out.println("shutting down pumpon task");
@@ -116,7 +114,7 @@ class TempCheckTask extends TimerTask {
 	}
 
 	private void startPump() {
-		freezePreventionTimerTask.cancel();
+		if (freezePreventionTimerTask != null) freezePreventionTimerTask.cancel();
 		// System.out.println("creating a pumpon task");
 		pumpOnTask = new PumpOnTask(pumpPin);
 		pumpOnTask.start();
@@ -124,19 +122,16 @@ class TempCheckTask extends TimerTask {
 		timePumpIsOnTask = new TimePumpIsOnTask();
 	}
 	
-	private final void setUpFreezeTime() {
-
-	}
-	
 	private final void startFreezePreventionTimer() {
 		// Set up freeze timer
-		Calendar freezeTimerTime = Calendar.getInstance();
-		int hour = freezeTimerTime.get(11) % 2 == 0 ? freezeTimerTime.get(11) + 2 : freezeTimerTime.get(11) + 1;
-		freezeTimerTime.set(11, hour);
-		freezeTimerTime.set(12, 0);
-		freezeTimerTime.set(13, 0);
-		freezePreventionTimer = new Timer();
 		if (freezePreventionTime > 0) {
+			Calendar freezeTimerTime = Calendar.getInstance();
+			int hour = freezeTimerTime.get(11) % 2 == 0 ? freezeTimerTime.get(11) + 2 : freezeTimerTime.get(11) + 1;
+			freezeTimerTime.set(11, hour);
+			freezeTimerTime.set(12, 0);
+			freezeTimerTime.set(13, 0);
+			freezePreventionTimerTask = new FreezePreventionTimerTask();
+			freezePreventionTimer = new Timer();
 			System.out.println("Setting freeze prevention timer to " + freezePreventionTime.toString() + " hours.");
 			freezePreventionTimer.scheduleAtFixedRate(freezePreventionTimerTask, freezeTimerTime.getTime(), freezePreventionTime * 60 * 60 * 1000);
 		}
